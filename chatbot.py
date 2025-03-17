@@ -5,15 +5,19 @@ import datetime
 import json
 
 def generate_response(client, messages):
-    response = client.chat.completions.create(
-        model='gpt-4o',
-        messages=messages
-    )
-
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model='gpt-4o',
+            messages=messages
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error generating response: {str(e)}"
 
 with streamlit.sidebar:
     api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
+    if not api_key:
+        streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
 
 streamlit.title('28 Restaurant')
 
@@ -22,39 +26,30 @@ if 'restaurant' not in streamlit.session_state:
         table_sizes={2: 4, 4: 4, 8: 2},
         hours=[(48, 94), (144, 190), (256, 286), (336, 382), (432, 478), (528, 574), (624, 670)],
         menu={
-            # 0: {
-            #     'name': 'Cheese and cold meat platter',
-            #     'price': 188, 
-            #     'description': 'Mixture of smoked cheese, blue cheese, Camembert cheese, Palma ham, and salami Milano. Served with crackers.',
-            #     'time': 2,
-            # },
-            # 1: {
-            #     'name': 'Barramundi goujons rice balls platter',
-            #     'price': 188,
-            #     'description': 'Strips of barramundi and rice balls filled with cheese and peas, deep fried in bread crumbs and sliced fresh vegetables. Served with hummus and tartare dips.',
-            #     'time': 2,
-            # }
             1: {
                 'name': 'fries',
                 'price': 20,
                 'description': 'fries',
-                'time': 1
+                'time': 1,
+                'allergens': ['gluten']
             },
             2: {
                 'name': 'burger',
                 'price': 40,
                 'description': 'burger',
-                'time': 2
+                'time': 2,
+                'allergens': ['gluten', 'dairy', 'soy']
             },
             3: {
                 'name': 'diet coke',
                 'price': 10,
                 'description': 'diet coke',
-                'time': 0
+                'time': 0,
+                'allergens': []
             }
         }
     )
-    streamlit.session_state['restauant'] = restaurant.to_json()
+    streamlit.session_state['restaurant'] = restaurant.to_json()
 else:
     restaurant = Restaurant.from_json(streamlit.session_state['restaurant'])
 
@@ -69,25 +64,36 @@ Time should be formatted as following: "31 Jan 2022, 23:59". Reservations operat
 Here are the options for querying the system:
 {"operation": "get_available_times", "party_size": SIZE, "time": TIME} -> returns a list of times with an available times
 {"operation": "book", "party_size": SIZE, "time": TIME} -> makes a 1 hour booking for a party size, returning the table number if successful and False if unsuccessful
-{"operation": "order", "items": [[ITEM_ID, COUNT], [ITEM_ID, COUNT], ...]} -> returns the cost and estimated wait time to complete the order
+{"operation": "order", "items": [[ITEM_ID, COUNT], [ITEM_ID, COUNT], ...], "allergies": [LIST OF ALLERGIES]} -> returns the cost and estimated wait time to complete the order, or an error if allergic
+{"operation": "recommend", "preferences": [LIST OF PREFERENCES], "context": USER_QUERY, "allergies": [LIST OF ALLERGIES]} -> returns menu items that can be used to make personalized recommendations
+
+IMPORTANT: Always check for allergen information when taking orders. If a user mentions allergies, include them in the "allergies" field of the order or recommendation query.
+
+When making recommendations, extract any preferences or dietary restrictions from the user's query and include them in the "preferences" field. The "context" field should contain the user's original query. Based on these inputs and the menu data returned, provide personalized recommendations that highlight suitable menu items.
+
 Example 1:
 USER: I'd like to order three sets of fries and a diet coke.
-YOU: ###JSON###{"operation": "order", "items": [[1, 3], [2, 1]]}
-SYSTEM: {'time': 12, 'cost': 144}
-YOU: Thanks for placing an order with 28 Restaurant! Your total is $144 and your order will be available in around 12 minutes. Please pick it up at the front counter.
+YOU: ###JSON###{"operation": "order", "items": [[1, 3], [3, 1]], "allergies": []}
+SYSTEM: {'time': 12, 'cost': 70}
+YOU: Thanks for placing an order with 28 Restaurant! Your total is $70 and your order will be available in around 12 minutes. Please pick it up at the front counter.
 Example 2:
 USER: Can I book a table on Sunday for 4 at 7 PM?
 YOU: ###JSON###{"operation": "get_available_times", "party_size": 4, "time": "16 Mar 2025, 19:00"}
 SYSTEM: ["16 Mar 2025, 18:45", "16 Mar 2025, 19:00", "16 Mar 2025, 19:15", "16 Mar 2025, 19:30"]
 YOU: We have availability at 6:45 PM, 7:00 PM, 7:15 PM, and 7:30 PM. Which would you like?
 USER: 7 PM sounds great.
-YOU: ###JSON###{"operation": "book", "party_size": 4, "16 Mar 2025, 19:00"}
+YOU: ###JSON###{"operation": "book", "party_size": 4, "time": "16 Mar 2025, 19:00"}
 SYSTEM: 5
 YOU: Your table has been booked for 7 PM! You'll be seated at table 5.
+Example 3:
+USER: What would you recommend for a quick lunch?
+YOU: ###JSON###{"operation": "recommend", "preferences": ["quick"], "context": "What would you recommend for a quick lunch?", "allergies": []}
+SYSTEM: {'menu_items': {'1': {'name': 'fries', 'price': 20, 'description': 'fries', 'time': 1, 'allergens': ['gluten']}, '2': {'name': 'burger', 'price': 40, 'description': 'burger', 'time': 2, 'allergens': ['gluten', 'dairy', 'soy']}, '3': {'name': 'diet coke', 'price': 10, 'description': 'diet coke', 'time': 0, 'allergens': []}}, 'preferences': ['quick'], 'context': 'What would you recommend for a quick lunch?', 'allergies': []}
+YOU: For a quick lunch, I'd recommend our fries which take just 1 minute to prepare. If you have a bit more time, our burger is a popular choice and takes only 2 minutes. Both pair perfectly with a refreshing Diet Coke!
 Menu:
-Fries: 1
-Burger: 2
-Diet coke: 3
+Fries (1): Contains gluten
+Burger (2): Contains gluten, dairy, soy
+Diet coke (3): No allergens
 '''
 
 if 'messages' not in streamlit.session_state:
@@ -114,7 +120,7 @@ if prompt := streamlit.chat_input():
         if client is None:
             client = openai.AzureOpenAI(
                 api_key=api_key,
-                api_version='2023-12-01-preview',
+                api_version='2024-10-01-preview',
                 azure_endpoint='https://hkust.azure-api.net/'
             )
         

@@ -88,10 +88,23 @@ class Restaurant:
 
         return False
 
-    def order(self, items):
+    def order(self, items, allergies=None):
+        # Check for allergens if allergies are provided
+        if allergies:
+            for item in items:
+                menu_item = self.menu[item]
+                if 'allergens' in menu_item:
+                    for allergen in menu_item['allergens']:
+                        if allergen.lower() in [a.lower() for a in allergies]:
+                            return {'error': f"Cannot place order. {menu_item['name']} contains {allergen} which you're allergic to."}
+        
+        # If no allergens found or no allergies provided, proceed with order
         for item in items:
             self.orders.append(item)
-        return (sum(self.menu[order]['time'] for order in self.orders), sum(self.menu[order]['price'] for order in self.orders))
+        return {
+            'time': sum(self.menu[order]['time'] for order in self.orders),
+            'cost': sum(self.menu[order]['price'] for order in self.orders)
+        }
     
     def advance_queue(self):
         passed_time = int((time.time() - self.time)/60)
@@ -101,6 +114,7 @@ class Restaurant:
                 self.orders.pop(0)
             else:
                 break
+            
         self.time = time.time()
     
     def to_json(self):
@@ -117,8 +131,8 @@ class Restaurant:
         if query['operation'] == 'order':
             items = [[id]*count for id, count in query['items']]
             items = [j for i in items for j in i]
-            time, cost = self.order(items)
-            return {'time': time, 'cost': cost}
+            allergies = query.get('allergies', None)
+            return self.order(items, allergies)
         elif query['operation'] == 'get_available_times':
             t = Restaurant.to_restaurant_time(datetime.datetime.strptime(query['time'], '%d %b %Y, %H:%M').timestamp())
             times = self.get_available_times(query['party_size'], t)
@@ -126,7 +140,17 @@ class Restaurant:
         elif query['operation'] == 'book':
             t = Restaurant.to_restaurant_time(datetime.datetime.strptime(query['time'], '%d %b %Y, %H:%M').timestamp())
             return self.book(query['party_size'], t)
-
+        elif query['operation'] == 'recommend':
+            # Return menu items for the LLM to generate recommendations
+            preferences = query.get('preferences', [])
+            context = query.get('context', '')
+            allergies = query.get('allergies', [])
+            return {
+                'menu_items': {id: item for id, item in self.menu.items()},
+                'preferences': preferences,
+                'context': context,
+                'allergies': allergies
+            }
     # self.reservations = {[] for _ in sum(table_sizes.values())}
     # def get_available_table(self, party_size, start, length):
     #     end = start + length
@@ -155,3 +179,4 @@ class Restaurant:
 # print(twenty_eight.book(6, t))
 # print(twenty_eight.available)
 # print(twenty_eight.get_available_times(4, t))
+
