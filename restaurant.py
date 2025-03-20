@@ -109,7 +109,7 @@ class Restaurant:
     def advance_queue(self):
         passed_time = int((time.time() - self.time)/60)
         while passed_time > 0:
-            if (t := self.menu[self.orders[0]]['time']) > passed_time:
+            if self.orders and ((t := self.menu[self.orders[0]]['time']) > passed_time): #fix by Clinton. Only execute when order list is not empty
                 passed_time -= t
                 self.orders.pop(0)
             else:
@@ -120,10 +120,11 @@ class Restaurant:
     def to_json(self):
         return json.dumps({'table_sizes': self.table_sizes, 'available': self.available, 'menu': self.menu, 'hours': self.hours, 'orders': self.orders, 'time': self.time})
     
-    def from_json(json):
-        r = Restaurant(json['table_sizes'], json['hours'], json['menu'], json['time'])
-        r.orders = json['orders']
-        r.available = json['available']
+    def from_json(inputJson):
+        loadedJson = json.loads(inputJson) #fix by Clinton
+        r = Restaurant(loadedJson['table_sizes'], loadedJson['hours'], loadedJson['menu'], loadedJson['time'])
+        r.orders = loadedJson['orders']
+        r.available = loadedJson['available']
         r.advance_queue()
         return r
     

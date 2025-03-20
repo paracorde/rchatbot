@@ -4,6 +4,9 @@ from restaurant import Restaurant
 import datetime
 import json
 
+streamlit.markdown("<h1 style='text-align: center; color: black; font-family: \"Brush Script MT\"'>28</h1>", unsafe_allow_html=True)
+streamlit.markdown("<h3 style='text-align: center; color: black; margin: 0px; font-family: \"Verdana\"'>RESTAURANT</h3>", unsafe_allow_html=True)
+
 def generate_response(client, messages):
     try:
         response = client.chat.completions.create(
@@ -19,7 +22,8 @@ with streamlit.sidebar:
     if not api_key:
         streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
 
-streamlit.title('28 Restaurant')
+#streamlit.title('28 Restaurant')
+streamlit.subheader("Talk to our Assitant Chatbot - 28!")
 
 if 'restaurant' not in streamlit.session_state:
     restaurant = Restaurant(
@@ -54,7 +58,7 @@ else:
     restaurant = Restaurant.from_json(streamlit.session_state['restaurant'])
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
-prompt = f'The current time is {t}.' + '''You are an assistant for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
+prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
 Man Yee Wan San Tsuen, 28 Yi Chun Street, Sai Kung in Hong Kong.
 28 Restaurant supports dine-in, curbside pickup, and no-contact delivery. You will aid in these functions.
 If the user's inquiry can directly be answered, respond normally. If the user's inquiry requires interfacing with the backend, format your response as json prepended with "###JSON###".
@@ -101,7 +105,7 @@ if 'messages' not in streamlit.session_state:
         'role': 'system',
         'content': prompt
     }]
-    streamlit.session_state['messages'].append({'role': 'assistant', 'content': 'How can I help?'})
+    streamlit.session_state['messages'].append({'role': 'assistant', 'content': 'Hi! I\'m 28, the assistant chatbot for 28 Restaurant. My services include making reservations, providing recommendations, and more! How can I help you?'})
     print(streamlit.session_state['messages'])
 
 for message in streamlit.session_state.messages:
@@ -112,7 +116,7 @@ for message in streamlit.session_state.messages:
 client = None
 if prompt := streamlit.chat_input():
     if not api_key:
-        streamlit.info('Please enter your api key.')
+        streamlit.info('Please enter your API key.')
     else:
         streamlit.session_state.messages.append({'role': 'user', 'content': prompt})
         streamlit.chat_message('user').write(prompt)
