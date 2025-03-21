@@ -21,15 +21,27 @@ class Restaurant:
         self.time = t or time.time()
     
     def get_viable_tables(self, party_size):
-        if party_size > max(self.table_sizes.keys()): return None
+        # Convert party_size to integer if it's a string
+        if isinstance(party_size, str):
+            party_size = int(party_size)
+        
+        # Convert table_sizes keys to integers for comparison
+        max_size = max(int(size) for size in self.table_sizes.keys())
+        if party_size > max_size:
+            return None
 
         current = 0
         for size, n in self.table_sizes.items():
-            if size < party_size:
+            size_int = int(size) if isinstance(size, str) else size
+            if size_int < party_size:
                 current += n
                 continue
+            
+            # Found a table size that can accommodate the party
+            return current
 
-        return current
+        # If we've gone through all sizes and none are suitable
+        return None
     
     def get_available_times(self, party_size, start, length=4, surrounding=4):
         dt = datetime.datetime.fromtimestamp(Restaurant.to_unix(start))
@@ -58,16 +70,27 @@ class Restaurant:
 
             # this is pretty terribly inefficient, but it's a very limited number of operations so it's okay
             for table in range(viable, self.tables):
-                for booking in self.available[table]: # also terribly inefficient if there are many bookings, could be improved by using a sorted dictionary
+                if table not in self.available:  # Skip if table index is invalid
+                    continue
+                
+                # Process bookings for this table
+                bookings_to_remove = []
+                for booking in self.available[table]:
                     if booking < now: # booking already passed, delete to conserve storage
-                        del self.available[table][booking]
+                        bookings_to_remove.append(booking)
+                
+                # Remove expired bookings
+                for booking in bookings_to_remove:
+                    del self.available[table][booking]
+                
+                # Check if all required time slots are available
                 for t in range(s, e):
                     if not self.available[table].get(t, True): # table is not available
                         break
                 else:
                     available.append(s) # at least one table can be booked during this time
                     break # so we no longer need to check any other tables
-            
+        
         return available
 
     def book(self, party_size, start, length=4): # returns True on success
@@ -78,6 +101,10 @@ class Restaurant:
         s = start
         e = s + length
         for table in range(viable, self.tables):
+            # Skip if table doesn't exist in available dictionary
+            if table not in self.available:
+                continue
+            
             for t in range(s, e):
                 if not self.available[table].get(t, True):
                     break
@@ -121,10 +148,19 @@ class Restaurant:
         return json.dumps({'table_sizes': self.table_sizes, 'available': self.available, 'menu': self.menu, 'hours': self.hours, 'orders': self.orders, 'time': self.time})
     
     def from_json(inputJson):
-        loadedJson = json.loads(inputJson) #fix by Clinton
+        loadedJson = json.loads(inputJson)
         r = Restaurant(loadedJson['table_sizes'], loadedJson['hours'], loadedJson['menu'], loadedJson['time'])
         r.orders = loadedJson['orders']
-        r.available = loadedJson['available']
+        
+        # Convert string keys back to integers for the available dictionary
+        r.available = {}
+        for key, value in loadedJson['available'].items():
+            # Convert the outer key (table number) to int
+            r.available[int(key)] = {}
+            for booking_time, booking_status in value.items():
+                # Convert the inner keys (booking times) to int
+                r.available[int(key)][int(booking_time)] = booking_status
+        
         r.advance_queue()
         return r
     
@@ -136,11 +172,15 @@ class Restaurant:
             return self.order(items, allergies)
         elif query['operation'] == 'get_available_times':
             t = Restaurant.to_restaurant_time(datetime.datetime.strptime(query['time'], '%d %b %Y, %H:%M').timestamp())
-            times = self.get_available_times(query['party_size'], t)
+            # Convert party_size to int
+            party_size = int(query['party_size']) if isinstance(query['party_size'], str) else query['party_size']
+            times = self.get_available_times(party_size, t)
             return [datetime.datetime.fromtimestamp(Restaurant.to_unix(i)).strftime('%d %b %Y, %H:%M') for i in times]
         elif query['operation'] == 'book':
             t = Restaurant.to_restaurant_time(datetime.datetime.strptime(query['time'], '%d %b %Y, %H:%M').timestamp())
-            return self.book(query['party_size'], t)
+            # Convert party_size to int
+            party_size = int(query['party_size']) if isinstance(query['party_size'], str) else query['party_size']
+            return self.book(party_size, t)
         elif query['operation'] == 'recommend':
             # Return menu items for the LLM to generate recommendations
             preferences = query.get('preferences', [])

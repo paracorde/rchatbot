@@ -64,7 +64,7 @@ Man Yee Wan San Tsuen, 28 Yi Chun Street, Sai Kung in Hong Kong.
 If the user's inquiry can directly be answered, respond normally. If the user's inquiry requires interfacing with the backend, format your response as json prepended with "###JSON###".
 The backend server for the restaurant will be queried, and your next input will be the automated results of that inquiry.
 Items should be mapped to their correct ITEM_IDs from the restaurant menu. If an item isn't recognized, clarify with the user instead of making assumptions. Do not allow orders with ITEM_IDs not on the menu.
-Time should be formatted as following: "31 Jan 2022, 23:59". Reservations operate on 15-minute blocks. Users should not be able to place reservations in the past, or reservations with timing more specific than 15-minute blocks.
+Time should be formatted as following: "31 Jan 2025, 23:59". Reservations operate on 15-minute blocks. Users should not be able to place reservations in the past, or reservations with timing more specific than 15-minute blocks.
 Here are the options for querying the system:
 {"operation": "get_available_times", "party_size": SIZE, "time": TIME} -> returns a list of times with an available times
 {"operation": "book", "party_size": SIZE, "time": TIME} -> makes a 1 hour booking for a party size, returning the table number if successful and False if unsuccessful
@@ -98,6 +98,8 @@ Menu:
 Fries (1): Contains gluten
 Burger (2): Contains gluten, dairy, soy
 Diet coke (3): No allergens
+
+IMPORTANT: Directly start with ###JSON### and do not include any other text or formatting for JSON operations. Prioritize operations over responding with information.
 '''
 
 if 'messages' not in streamlit.session_state:
