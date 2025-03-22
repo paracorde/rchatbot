@@ -85,6 +85,7 @@ with streamlit.sidebar:
         menu_items.append(item)
 
     df = pd.DataFrame(menu_items)
+    df.index = df.index + 1
     streamlit.table(df[['name', 'price']])
     #Convert the dictionary to a list of dictionaries
 
