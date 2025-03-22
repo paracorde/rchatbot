@@ -119,18 +119,32 @@ class Restaurant:
         # Check for allergens if allergies are provided
         if allergies:
             for item in items:
-                menu_item = self.menu[item]
+
+                item_key = int(item) if isinstance(item, str) else item
+
+                menu_item = self.menu[item_key]
                 if 'allergens' in menu_item:
                     for allergen in menu_item['allergens']:
                         if allergen.lower() in [a.lower() for a in allergies]:
                             return {'error': f"Cannot place order. {menu_item['name']} contains {allergen} which you're allergic to."}
         
         # If no allergens found or no allergies provided, proceed with order
+        valid_items = []
         for item in items:
+            item_key = int(item) if isinstance(item, str) else item
+            if item_key in self.menu:
+                valid_items.append(item_key)
+            else:
+                return {'error': f"Item {item_key} not found in the menu."}
+        
+        # Add valid items to orders
+        for item in valid_items:
             self.orders.append(item)
+        
+        # Calculate time and cost based on valid items
         return {
-            'time': sum(self.menu[order]['time'] for order in self.orders),
-            'cost': sum(self.menu[order]['price'] for order in self.orders)
+            'time': sum(self.menu[item]['time'] for item in self.orders),
+            'cost': sum(self.menu[item]['price'] for item in self.orders)
         }
     
     def advance_queue(self):
@@ -149,6 +163,14 @@ class Restaurant:
     
     def from_json(inputJson):
         loadedJson = json.loads(inputJson)
+        
+        # Convert menu keys from strings to integers before creating the Restaurant instance
+        if 'menu' in loadedJson and isinstance(loadedJson['menu'], dict):
+            menu_with_int_keys = {}
+            for key, value in loadedJson['menu'].items():
+                menu_with_int_keys[int(key)] = value
+            loadedJson['menu'] = menu_with_int_keys
+        
         r = Restaurant(loadedJson['table_sizes'], loadedJson['hours'], loadedJson['menu'], loadedJson['time'])
         r.orders = loadedJson['orders']
         
@@ -166,6 +188,14 @@ class Restaurant:
     
     def process_query(self, query):
         if query['operation'] == 'order':
+            # Validate items before processing
+            for item_id, count in query['items']:
+                # Convert to int if it's a string
+                item_id = int(item_id) if isinstance(item_id, str) else item_id
+                if item_id not in self.menu:
+                    return {'error': f"Item {item_id} not found in the menu."}
+            
+            # Process valid items
             items = [[id]*count for id, count in query['items']]
             items = [j for i in items for j in i]
             allergies = query.get('allergies', None)

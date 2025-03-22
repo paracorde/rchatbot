@@ -50,6 +50,13 @@ if 'restaurant' not in streamlit.session_state:
                 'description': 'diet coke',
                 'time': 0,
                 'allergens': []
+            },
+            4: {
+                'name': 'rice bowl',
+                'price': 35,
+                'description': 'steamed rice with stir-fried vegetables',
+                'time': 2,
+                'allergens': []
             }
         }
     )
@@ -92,12 +99,8 @@ YOU: Your table has been booked for 7 PM! You'll be seated at table 5.
 Example 3:
 USER: What would you recommend for a quick lunch?
 YOU: ###JSON###{"operation": "recommend", "preferences": ["quick"], "context": "What would you recommend for a quick lunch?", "allergies": []}
-SYSTEM: {'menu_items': {'1': {'name': 'fries', 'price': 20, 'description': 'fries', 'time': 1, 'allergens': ['gluten']}, '2': {'name': 'burger', 'price': 40, 'description': 'burger', 'time': 2, 'allergens': ['gluten', 'dairy', 'soy']}, '3': {'name': 'diet coke', 'price': 10, 'description': 'diet coke', 'time': 0, 'allergens': []}}, 'preferences': ['quick'], 'context': 'What would you recommend for a quick lunch?', 'allergies': []}
+SYSTEM: {'menu_items': {'1': {'name': 'fries', 'price': 20, 'description': 'fries', 'time': 1, 'allergens': ['gluten']}, '2': {'name': 'burger', 'price': 40, 'description': 'burger', 'time': 2, 'allergens': ['gluten', 'dairy', 'soy']}, '3': {'name': 'diet coke', 'price': 10, 'description': 'diet coke', 'time': 0, 'allergens': []}, '4': {'name': 'rice bowl', 'price': 35, 'description': 'steamed rice with stir-fried vegetables', 'time': 2, 'allergens': []}}, 'preferences': ['quick'], 'context': 'What would you recommend for a quick lunch?', 'allergies': []}
 YOU: For a quick lunch, I'd recommend our fries which take just 1 minute to prepare. If you have a bit more time, our burger is a popular choice and takes only 2 minutes. Both pair perfectly with a refreshing Diet Coke!
-Menu:
-Fries (1): Contains gluten
-Burger (2): Contains gluten, dairy, soy
-Diet coke (3): No allergens
 
 IMPORTANT: Directly start with ###JSON### and do not include any other text or formatting for JSON operations. Prioritize operations over responding with information.
 '''

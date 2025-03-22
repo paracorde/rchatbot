@@ -56,7 +56,7 @@ The system will:
 
 ### Placing an Order
 
-User: "I'd like to order two burgers and a diet coke. I'm allergic to soy."
+User: "I'd like to order a rice bowl and a diet coke. I'm allergic to soy."
 
 The system will:
 1. Identify menu items and quantities
@@ -101,8 +101,11 @@ The restaurant system comes pre-configured with:
 
 - **Table sizes**: 2-seat (4 tables), 4-seat (4 tables), 8-seat (2 tables)
 - **Opening hours**: Daily, stored in 15-minute time blocks
-- **Menu**: Basic menu with fries, burger, and diet coke
-- **Allergen tracking**: Automatically checks for gluten, dairy, and soy allergies
+- **Menu**: 
+  - Fries ($20) - Contains gluten
+  - Burger ($40) - Contains gluten, dairy, soy
+  - Diet Coke ($10) - No allergens
+  - Rice Bowl ($35) - No allergens
 
 ## API Integration
 

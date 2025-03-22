@@ -64,6 +64,7 @@ Basic menu with several items, each containing:
   - Fries ($20) - Contains gluten
   - Burger ($40) - Contains gluten, dairy, soy
   - Diet Coke ($10) - No allergens
+  - Rice Bowl ($35) - Steamed rice with stir-fried vegetables, no allergens
 
 ## Key Workflows
 
