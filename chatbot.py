@@ -3,8 +3,9 @@ import openai
 from restaurant import Restaurant
 import datetime
 import json
+import pandas as pd
 
-streamlit.markdown("<h1 style='text-align: center; color: black; font-family: \"Brush Script MT\"'>28</h1>", unsafe_allow_html=True)
+streamlit.markdown("<h1 style='text-align: center; color: black; margin: 0px; font-family: \"Brush Script MT\"'>28</h1>", unsafe_allow_html=True)
 streamlit.markdown("<h3 style='text-align: center; color: black; margin: 0px; font-family: \"Verdana\"'>RESTAURANT</h3>", unsafe_allow_html=True)
 
 def generate_response(client, messages):
@@ -17,13 +18,17 @@ def generate_response(client, messages):
     except Exception as e:
         return f"Error generating response: {str(e)}"
 
-with streamlit.sidebar:
-    api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
-    if not api_key:
-        streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
+#with streamlit.sidebar:
+    #api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
+    #if not api_key:
+    #    streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
+    
+    #streamlit.write("Your Orders")
+    #try:
+    #    streamlit.write(restaurant.orders)
 
 #streamlit.title('28 Restaurant')
-streamlit.subheader("Talk to our Assitant Chatbot - 28!")
+streamlit.subheader("Talk to our assitant chatbot - 28! 🤖", divider="blue")
 
 if 'restaurant' not in streamlit.session_state:
     restaurant = Restaurant(
@@ -63,6 +68,25 @@ if 'restaurant' not in streamlit.session_state:
     streamlit.session_state['restaurant'] = restaurant.to_json()
 else:
     restaurant = Restaurant.from_json(streamlit.session_state['restaurant'])
+
+with streamlit.sidebar:
+    api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
+    if not api_key:
+        streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
+    
+    #streamlit.markdown("<h3 style='text-align: left; color: black; margin: 0px; font-family: \"Arial\"'>Our Menu</h3>", unsafe_allow_html=True)
+    streamlit.write("**Our Menu** :hamburger:")
+    # Convert the dictionary to a list of lists
+
+    #for key, item in restaurant.menu.items():
+        #streamlit.markdown(f"<p1 style='text-align: left; color: black; font-family: \"Arial\"'>#{key}: {item['name']} - Price: {item['price']} - Description: {item['description']}</p>", unsafe_allow_html=True)
+    menu_items = []
+    for item in restaurant.menu.values():
+        menu_items.append(item)
+
+    df = pd.DataFrame(menu_items)
+    streamlit.table(df[['name', 'price']])
+    #Convert the dictionary to a list of dictionaries
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
 prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
@@ -123,23 +147,27 @@ if prompt := streamlit.chat_input():
     if not api_key:
         streamlit.info('Please enter your API key.')
     else:
-        streamlit.session_state.messages.append({'role': 'user', 'content': prompt})
-        streamlit.chat_message('user').write(prompt)
+        try:
+            streamlit.session_state.messages.append({'role': 'user', 'content': prompt})
+            streamlit.chat_message('user').write(prompt)
 
-        if client is None:
-            client = openai.AzureOpenAI(
-                api_key=api_key,
-                api_version='2024-10-01-preview',
-                azure_endpoint='https://hkust.azure-api.net/'
-            )
+            if client is None:
+                client = openai.AzureOpenAI(
+                    api_key=api_key,
+                    api_version='2024-10-01-preview',
+                    azure_endpoint='https://hkust.azure-api.net/'
+                )
         
-        message = generate_response(client, streamlit.session_state.messages)
-        if message.startswith('###JSON###'):
-            result = restaurant.process_query(json.loads(message[10:].strip()))
-            streamlit.session_state.messages.append({'role': 'system', 'content': str(result)})
-            user_message = generate_response(client, streamlit.session_state.messages)
-            streamlit.session_state.messages.append({'role': 'assistant', 'content': user_message})
-            streamlit.chat_message('assistant').write(user_message)
-        else:
-            streamlit.session_state.messages.append({'role': 'assistant', 'content': message})
-            streamlit.chat_message('assistant').write(message)
+            message = generate_response(client, streamlit.session_state.messages)
+            if message.startswith('###JSON###'):
+                result = restaurant.process_query(json.loads(message[10:].strip()))
+                streamlit.session_state.messages.append({'role': 'system', 'content': str(result)})
+                user_message = generate_response(client, streamlit.session_state.messages)
+                streamlit.session_state.messages.append({'role': 'assistant', 'content': user_message})
+                streamlit.chat_message('assistant').write(user_message)
+            else:
+                streamlit.session_state.messages.append({'role': 'assistant', 'content': message})
+                streamlit.chat_message('assistant').write(message)
+        except:
+            streamlit.info('Invalid API Key. Please reenter.')
+     
