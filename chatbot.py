@@ -50,18 +50,7 @@ def generate_response(client, messages):
         return response.choices[0].message.content
     except Exception as e:
         return f"Error generating response: {str(e)}"
-    
 
-#with streamlit.sidebar:
-    #api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
-    #if not api_key:
-    #    streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
-    
-    #streamlit.write("Your Orders")
-    #try:
-    #    streamlit.write(restaurant.orders)
-
-#streamlit.title('28 Restaurant')
 streamlit.subheader("Talk to our assistant chatbot - 28! 🤖", divider="blue")
 
 if 'restaurant' not in streamlit.session_state:
@@ -149,9 +138,8 @@ with streamlit.sidebar:
     df.index = df.index + 1
     streamlit.table(df[['name', 'price']])
     #print orders. polling.
-    
-    #streamlit.write(restaurant.orders)
     orders = streamlit.empty()
+    orders.write(restaurant.pretty_print_orders())
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
 prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
@@ -243,8 +231,10 @@ if prompt: # := streamlit.chat_input()
         streamlit.info('Please enter your API key.')
     else:
         try:
+            restaurant = Restaurant.from_json(streamlit.session_state['restaurant'])
             handle_user_prompt(prompt, client)
-            if len(restaurant.orders)>0:
-                orders.write(restaurant.orders)
+            if len(restaurant.orders) > 0:
+                orders.write(restaurant.pretty_print_orders())
+            streamlit.session_state['restaurant'] = restaurant.to_json()
         except:
             streamlit.info('Something wrong happened.')

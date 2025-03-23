@@ -147,6 +147,16 @@ class Restaurant:
             'cost': sum(self.menu[item]['price'] for item in self.orders)
         }
     
+    def pretty_print_orders(self):
+        od = {}
+        for order in self.orders:
+            if order in od: od[order] += 1
+            else: od[order] = 1
+        t = []
+        for item, count in sorted(od.items()):
+            t.append(f'{count} {(name := self.menu[item]["name"])}{"s" if count >= 2 and not name.endswith("s") else ""}') # in reality, pluralization is more complicated but this is good enough
+        return ', '.join(t)
+
     def advance_queue(self):
         passed_time = int((time.time() - self.time)/60)
         while passed_time > 0:
