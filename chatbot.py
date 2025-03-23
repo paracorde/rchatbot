@@ -7,6 +7,7 @@ import json
 import pandas as pd
 import speech_recognition as sr
 from streamlit_javascript import st_javascript
+import time
 
 #additional installs
 #pip install streamlit streamlit_extras
@@ -58,7 +59,7 @@ def generate_response(client, messages):
     #    streamlit.write(restaurant.orders)
 
 #streamlit.title('28 Restaurant')
-streamlit.subheader("Talk to our assitant chatbot - 28! 🤖", divider="blue")
+streamlit.subheader("Talk to our assistant chatbot - 28! 🤖", divider="blue")
 
 if 'restaurant' not in streamlit.session_state:
     restaurant = Restaurant(
@@ -144,6 +145,10 @@ with streamlit.sidebar:
     df = pd.DataFrame(menu_items)
     df.index = df.index + 1
     streamlit.table(df[['name', 'price']])
+    #print orders. polling.
+    
+    #streamlit.write(restaurant.orders)
+    orders = streamlit.empty()
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
 prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
@@ -236,5 +241,6 @@ if prompt: # := streamlit.chat_input()
     else:
         try:
             handle_user_prompt(prompt, client)
+            orders.write(restaurant.orders)
         except:
             streamlit.info('Something wrong happened.')
