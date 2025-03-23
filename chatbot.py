@@ -1,12 +1,41 @@
 import streamlit
+from streamlit_extras.stylable_container import stylable_container
 import openai
 from restaurant import Restaurant
 import datetime
 import json
 import pandas as pd
+import speech_recognition as sr
+from streamlit_javascript import st_javascript
+
+#additional installs
+#pip install streamlit streamlit_extras
+#pip install streamlit-javascript
 
 streamlit.markdown("<h1 style='text-align: center; color: black; margin: 0px; font-family: \"Brush Script MT\"'>28</h1>", unsafe_allow_html=True)
 streamlit.markdown("<h3 style='text-align: center; color: black; margin: 0px; font-family: \"Verdana\"'>RESTAURANT</h3>", unsafe_allow_html=True)
+
+# STT
+def speech_to_text():
+    recognizer = sr.Recognizer()                                    # Initialize recognizer class (for recognizing the speech)
+    with sr.Microphone() as source:
+        streamlit.markdown("<p class = 'mic' style='text-align: left; color: grey; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Listening...Speak now.</p>", unsafe_allow_html=True)
+        try:
+            audio = recognizer.listen(source, timeout=10)            # Reading Microphone as source
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
+            #streamlit.markdown("<p id='mic' style='text-align: left; color: grey; margin: 0px; font-size: 12px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
+            #st_javascript("document.getElementById('mic').innerHTML = 'Processing your voice...';")
+            return recognizer.recognize_google(audio)               # Using google speech recognition
+        except sr.UnknownValueError:
+            #streamlit.write("Unknown Value Error")
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Unknown Value Error</p>", unsafe_allow_html=True)
+        except sr.RequestError:
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Request Error from Google Speech Recognition</p>", unsafe_allow_html=True)
+        except sr.WaitTimeoutError:
+            #streamlit.write("Wait Timeout Error. No speech detected")
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: orange; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Wait Timeout Error. No speech detected</p>", unsafe_allow_html=True)
+    return None
+
 
 def generate_response(client, messages):
     try:
@@ -17,6 +46,7 @@ def generate_response(client, messages):
         return response.choices[0].message.content
     except Exception as e:
         return f"Error generating response: {str(e)}"
+    
 
 #with streamlit.sidebar:
     #api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
@@ -69,6 +99,36 @@ if 'restaurant' not in streamlit.session_state:
 else:
     restaurant = Restaurant.from_json(streamlit.session_state['restaurant'])
 
+def scroll_to_bottom():
+    script = "window.scrollTo(0, document.body.scrollHeight);"
+    st_javascript(script)
+    st_javascript("console.log('Scrolled to bottom');")
+    
+
+def handle_user_prompt(prompt, client):
+    streamlit.session_state.messages.append({'role': 'user', 'content': prompt})
+    streamlit.chat_message('user').write(prompt)
+
+    if client is None:
+        client = openai.AzureOpenAI(
+            api_key=api_key,
+            api_version='2024-10-01-preview',
+            azure_endpoint='https://hkust.azure-api.net/'
+        )
+        
+    message = generate_response(client, streamlit.session_state.messages)
+    if message.startswith('###JSON###'):
+        result = restaurant.process_query(json.loads(message[10:].strip()))
+        streamlit.session_state.messages.append({'role': 'system', 'content': str(result)})
+        user_message = generate_response(client, streamlit.session_state.messages)
+        streamlit.session_state.messages.append({'role': 'assistant', 'content': user_message})
+        streamlit.chat_message('assistant').write(user_message)
+    else:
+        streamlit.session_state.messages.append({'role': 'assistant', 'content': message})
+        streamlit.chat_message('assistant').write(message)
+    
+    scroll_to_bottom()
+
 with streamlit.sidebar:
     api_key = str(streamlit.text_input('Azure OpenAI API Key', key='chatbot_api_key', type='password')).strip()
     if not api_key:
@@ -76,10 +136,7 @@ with streamlit.sidebar:
     
     #streamlit.markdown("<h3 style='text-align: left; color: black; margin: 0px; font-family: \"Arial\"'>Our Menu</h3>", unsafe_allow_html=True)
     streamlit.write("**Our Menu** :hamburger:")
-    # Convert the dictionary to a list of lists
-
-    #for key, item in restaurant.menu.items():
-        #streamlit.markdown(f"<p1 style='text-align: left; color: black; font-family: \"Arial\"'>#{key}: {item['name']} - Price: {item['price']} - Description: {item['description']}</p>", unsafe_allow_html=True)
+    # Print menu
     menu_items = []
     for item in restaurant.menu.values():
         menu_items.append(item)
@@ -87,7 +144,6 @@ with streamlit.sidebar:
     df = pd.DataFrame(menu_items)
     df.index = df.index + 1
     streamlit.table(df[['name', 'price']])
-    #Convert the dictionary to a list of dictionaries
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
 prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
@@ -144,31 +200,41 @@ for message in streamlit.session_state.messages:
     streamlit.chat_message(message['role']).write(message['content'])
 
 client = None
-if prompt := streamlit.chat_input():
+
+#stylable container - contains chat input and voice
+with stylable_container(
+    key="bottom_content",
+        css_styles="""
+            {
+                position: fixed;
+                bottom: 0px;
+                display: block;
+                z-index: 1; /* Ensures the container is above other elements */
+
+                background-color: rgba(255, 255, 255, 1); /* Semi-transparent white background */
+                padding: 10px;
+                border-radius: 5px;
+                width: 50%; /* Adjust the width of the white block */
+                height: 150px;
+                margin: 0 auto; /* Center the container horizontally */
+            }
+            """,
+    ):
+        input_col, button_col = streamlit.columns([0.85, 0.15])  # 80% width for input, 10% for button
+
+        with input_col:
+            prompt = streamlit.chat_input("Say something.")  # Chat input in left column
+
+        with button_col:  # Button in right column. Speak button.
+            if streamlit.button("🎤"):
+                prompt = speech_to_text()
+
+
+if prompt: # := streamlit.chat_input()
     if not api_key:
         streamlit.info('Please enter your API key.')
     else:
         try:
-            streamlit.session_state.messages.append({'role': 'user', 'content': prompt})
-            streamlit.chat_message('user').write(prompt)
-
-            if client is None:
-                client = openai.AzureOpenAI(
-                    api_key=api_key,
-                    api_version='2024-10-01-preview',
-                    azure_endpoint='https://hkust.azure-api.net/'
-                )
-        
-            message = generate_response(client, streamlit.session_state.messages)
-            if message.startswith('###JSON###'):
-                result = restaurant.process_query(json.loads(message[10:].strip()))
-                streamlit.session_state.messages.append({'role': 'system', 'content': str(result)})
-                user_message = generate_response(client, streamlit.session_state.messages)
-                streamlit.session_state.messages.append({'role': 'assistant', 'content': user_message})
-                streamlit.chat_message('assistant').write(user_message)
-            else:
-                streamlit.session_state.messages.append({'role': 'assistant', 'content': message})
-                streamlit.chat_message('assistant').write(message)
+            handle_user_prompt(prompt, client)
         except:
-            streamlit.info('Invalid API Key. Please reenter.')
-     
+            streamlit.info('Something wrong happened.')
