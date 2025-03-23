@@ -20,21 +20,24 @@ streamlit.markdown("<h3 style='text-align: center; color: black; margin: 0px; fo
 def speech_to_text():
     recognizer = sr.Recognizer()                                    # Initialize recognizer class (for recognizing the speech)
     with sr.Microphone() as source:
-        streamlit.markdown("<p class = 'mic' style='text-align: left; color: grey; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Listening...Speak now.</p>", unsafe_allow_html=True)
+        streamlit.markdown("<p class = 'mic' style='text-align: left; color: grey; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Listening...</p>", unsafe_allow_html=True)
         try:
-            audio = recognizer.listen(source, timeout=10)            # Reading Microphone as source
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
+            audio = recognizer.listen(source, timeout=8)            # Reading Microphone as source
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Processing your speech...</p>", unsafe_allow_html=True)
             #streamlit.markdown("<p id='mic' style='text-align: left; color: grey; margin: 0px; font-size: 12px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
             #st_javascript("document.getElementById('mic').innerHTML = 'Processing your voice...';")
-            return recognizer.recognize_google(audio)               # Using google speech recognition
+            converted = recognizer.recognize_google(audio, language="en-US") # Using google speech recognition. "zh - CN" for Chinese
+            if converted:
+                streamlit.markdown("<p class = 'mic' style='text-align: left; color: green; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Done!</p>", unsafe_allow_html=True)
+            return converted      
         except sr.UnknownValueError:
             #streamlit.write("Unknown Value Error")
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Unknown Value Error</p>", unsafe_allow_html=True)
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Cannot detect. Please speak again.</p>", unsafe_allow_html=True)
         except sr.RequestError:
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Request Error from Google Speech Recognition</p>", unsafe_allow_html=True)
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Request Error from Google Speech Recognition. Please speak again.</p>", unsafe_allow_html=True)
         except sr.WaitTimeoutError:
             #streamlit.write("Wait Timeout Error. No speech detected")
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: orange; margin: 1px; font-size: 10px; font-family: \"Arial\"'>Wait Timeout Error. No speech detected</p>", unsafe_allow_html=True)
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: orange; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>No speech detected. Please say something.</p>", unsafe_allow_html=True)
     return None
 
 
@@ -63,7 +66,7 @@ streamlit.subheader("Talk to our assistant chatbot - 28! 🤖", divider="blue")
 
 if 'restaurant' not in streamlit.session_state:
     restaurant = Restaurant(
-        table_sizes={2: 4, 4: 4, 8: 2},
+        table_sizes={1 : 1 ,2: 4, 4: 4, 8: 2},
         hours=[(48, 94), (144, 190), (256, 286), (336, 382), (432, 478), (528, 574), (624, 670)],
         menu={
             1: {
@@ -217,7 +220,7 @@ with stylable_container(
                 z-index: 1; /* Ensures the container is above other elements */
 
                 background-color: rgba(255, 255, 255, 1); /* Semi-transparent white background */
-                padding: 10px;
+                padding: 5px;
                 border-radius: 5px;
                 width: 50%; /* Adjust the width of the white block */
                 height: 150px;
@@ -241,6 +244,7 @@ if prompt: # := streamlit.chat_input()
     else:
         try:
             handle_user_prompt(prompt, client)
-            orders.write(restaurant.orders)
+            if len(restaurant.orders)>0:
+                orders.write(restaurant.orders)
         except:
             streamlit.info('Something wrong happened.')
