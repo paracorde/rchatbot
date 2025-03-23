@@ -58,7 +58,7 @@ def generate_response(client, messages):
     #    streamlit.write(restaurant.orders)
 
 #streamlit.title('28 Restaurant')
-streamlit.subheader("Talk to our assitant chatbot - 28! 🤖", divider="blue")
+streamlit.subheader("Talk to our assistant chatbot - 28! 🤖", divider="blue")
 
 if 'restaurant' not in streamlit.session_state:
     restaurant = Restaurant(
