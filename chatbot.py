@@ -32,7 +32,7 @@ def speech_to_text():
             elif lang_input == "廣東話":
                 converted = recognizer.recognize_google(audio, language="yue-Hant-HK") # Using google speech recognition. Cantonese
             elif lang_input == "普通話":
-                converted = recognizer.recognize_google(audio, language="cmn-Hans-HK") # Using google speech recognition. Cantonese
+                converted = recognizer.recognize_google(audio, language="cmn-Hans-HK") # Using google speech recognition. Chinese
             if converted:
                 streamlit.markdown("<p class = 'mic' style='text-align: left; color: green; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Done!</p>", unsafe_allow_html=True)
             return converted      
