@@ -6,8 +6,8 @@ import datetime
 import json
 import pandas as pd
 import speech_recognition as sr
+import pyttsx3
 from streamlit_javascript import st_javascript
-import time
 
 #additional installs
 #pip install streamlit streamlit_extras
@@ -23,7 +23,7 @@ def speech_to_text():
     with sr.Microphone() as source:
         streamlit.markdown("<p class = 'mic' style='text-align: left; color: grey; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Listening...</p>", unsafe_allow_html=True)
         try:
-            audio = recognizer.listen(source, timeout=8)            # Reading Microphone as source
+            audio = recognizer.listen(source, timeout = 10)            # Reading Microphone as source
             streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Processing your speech...</p>", unsafe_allow_html=True)
             #streamlit.markdown("<p id='mic' style='text-align: left; color: grey; margin: 0px; font-size: 12px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
             #st_javascript("document.getElementById('mic').innerHTML = 'Processing your voice...';")
@@ -45,6 +45,23 @@ def speech_to_text():
             #streamlit.write("Wait Timeout Error. No speech detected")
             streamlit.markdown("<p class = 'mic' style='text-align: left; color: orange; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>No speech detected. Please say something.</p>", unsafe_allow_html=True)
     return None
+
+# TTS
+def text_to_speech(text):
+    # Initialize TTS engine
+    tts_engine = pyttsx3.init() 
+    tts_engine.setProperty('rate', 150)      # set speech property
+    voices = tts_engine.getProperty('voices')
+    if lang_input == "English":
+        tts_engine.setProperty('voice', voices[1].id)
+    elif lang_input == "廣東話":
+        tts_engine.setProperty('voice', voices[2].id)
+    elif lang_input == "普通話":
+        tts_engine.setProperty('voice', voices[2].id)
+    tts_engine.say(text)
+    tts_engine.runAndWait()              # Run and wait for the speech to finish
+    if tts_engine._inLoop:               # End the loop (keep the engine running will cause runtime error)
+        tts_engine.endLoop()
 
 
 def generate_response(client, messages):
@@ -122,9 +139,11 @@ def handle_user_prompt(prompt, client):
         user_message = generate_response(client, streamlit.session_state.messages)
         streamlit.session_state.messages.append({'role': 'assistant', 'content': user_message})
         streamlit.chat_message('assistant').write(user_message)
+        text_to_speech(user_message)
     else:
         streamlit.session_state.messages.append({'role': 'assistant', 'content': message})
         streamlit.chat_message('assistant').write(message)
+        text_to_speech(message)
     
     scroll_to_bottom()
 
@@ -146,7 +165,7 @@ with streamlit.sidebar:
     streamlit.table(df[['name', 'price']])
     
     #print orders.
-    streamlit.write("**Your Orders** :page_with_curl:")
+    streamlit.write("**Currently Preparing** :stopwatch:")
     with stylable_container(
     key="orders",
         css_styles="""
@@ -154,7 +173,7 @@ with streamlit.sidebar:
                 position: relative;
                 display: block;
 
-                background-color: #d6d6d4;
+                background-color: #FFFFFF;
                 padding: 7px;
                 border-radius: 5px;
                 margin: 0 auto; /* Center the container horizontally */
