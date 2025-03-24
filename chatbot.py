@@ -13,6 +13,7 @@ import time
 #pip install streamlit streamlit_extras
 #pip install streamlit-javascript
 
+
 streamlit.markdown("<h1 style='text-align: center; color: black; margin: 0px; font-family: \"Brush Script MT\"'>28</h1>", unsafe_allow_html=True)
 streamlit.markdown("<h3 style='text-align: center; color: black; margin: 0px; font-family: \"Verdana\"'>RESTAURANT</h3>", unsafe_allow_html=True)
 
@@ -26,7 +27,12 @@ def speech_to_text():
             streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Processing your speech...</p>", unsafe_allow_html=True)
             #streamlit.markdown("<p id='mic' style='text-align: left; color: grey; margin: 0px; font-size: 12px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
             #st_javascript("document.getElementById('mic').innerHTML = 'Processing your voice...';")
-            converted = recognizer.recognize_google(audio, language="en-US") # Using google speech recognition. "zh - CN" for Chinese
+            if lang_input == "English":
+                converted = recognizer.recognize_google(audio, language="en-HK") # Using google speech recognition. English
+            elif lang_input == "廣東話":
+                converted = recognizer.recognize_google(audio, language="yue-Hant-HK") # Using google speech recognition. Cantonese
+            elif lang_input == "普通話":
+                converted = recognizer.recognize_google(audio, language="cmn-Hans-HK") # Using google speech recognition. Cantonese
             if converted:
                 streamlit.markdown("<p class = 'mic' style='text-align: left; color: green; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Done!</p>", unsafe_allow_html=True)
             return converted      
@@ -127,7 +133,8 @@ with streamlit.sidebar:
     if not api_key:
         streamlit.warning('Please enter your Azure OpenAI API Key to use the chatbot.')
     
-    #streamlit.markdown("<h3 style='text-align: left; color: black; margin: 0px; font-family: \"Arial\"'>Our Menu</h3>", unsafe_allow_html=True)
+    lang_input = streamlit.radio("**Choose your language** 🗣️",("English", "廣東話", "普通話"), horizontal = True)
+
     streamlit.write("**Our Menu** :hamburger:")
     # Print menu
     menu_items = []
@@ -137,9 +144,25 @@ with streamlit.sidebar:
     df = pd.DataFrame(menu_items)
     df.index = df.index + 1
     streamlit.table(df[['name', 'price']])
-    #print orders. polling.
-    orders = streamlit.empty()
-    orders.write(restaurant.pretty_print_orders())
+    
+    #print orders.
+    streamlit.write("**Your Orders** :page_with_curl:")
+    with stylable_container(
+    key="orders",
+        css_styles="""
+            {
+                position: relative;
+                display: block;
+
+                background-color: #d6d6d4;
+                padding: 7px;
+                border-radius: 5px;
+                margin: 0 auto; /* Center the container horizontally */
+            }
+            """,
+    ):
+        orders = streamlit.empty()
+        orders.text(restaurant.pretty_print_orders()) #display ordered foods
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
 prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
@@ -156,7 +179,7 @@ Here are the options for querying the system:
 {"operation": "recommend", "preferences": [LIST OF PREFERENCES], "context": USER_QUERY, "allergies": [LIST OF ALLERGIES]} -> returns menu items that can be used to make personalized recommendations
 
 IMPORTANT: Always check for allergen information when taking orders. If a user mentions allergies, include them in the "allergies" field of the order or recommendation query.
-
+If the user makes an additional order, do not include the previous order in your next response. Adjustments to existing orders cannot be made.
 When making recommendations, extract any preferences or dietary restrictions from the user's query and include them in the "preferences" field. The "context" field should contain the user's original query. Based on these inputs and the menu data returned, provide personalized recommendations that highlight suitable menu items.
 
 Example 1:
@@ -164,6 +187,10 @@ USER: I'd like to order three sets of fries and a diet coke.
 YOU: ###JSON###{"operation": "order", "items": [[1, 3], [3, 1]], "allergies": []}
 SYSTEM: {'time': 12, 'cost': 70}
 YOU: Thanks for placing an order with 28 Restaurant! Your total is $70 and your order will be available in around 12 minutes. Please pick it up at the front counter.
+USER: Add one more fries, please.
+YOU: ###JSON###{"operation": "order", "items": [[1, 1]], "allergies": []}
+SYSTEM: {'time': 13, 'cost': 90}
+YOU: Thanks for placing an order with 28 Restaurant! Your total is now $90 and will be available in around 13 minutes. Please pick it up at the front counter.
 Example 2:
 USER: Can I book a table on Sunday for 4 at 7 PM?
 YOU: ###JSON###{"operation": "get_available_times", "party_size": 4, "time": "16 Mar 2025, 19:00"}
@@ -222,7 +249,7 @@ with stylable_container(
             prompt = streamlit.chat_input("Say something.")  # Chat input in left column
 
         with button_col:  # Button in right column. Speak button.
-            if streamlit.button("🎤"):
+            if streamlit.button(":studio_microphone:"):
                 prompt = speech_to_text()
 
 
@@ -233,8 +260,8 @@ if prompt: # := streamlit.chat_input()
         try:
             restaurant = Restaurant.from_json(streamlit.session_state['restaurant'])
             handle_user_prompt(prompt, client)
-            if len(restaurant.orders) > 0:
-                orders.write(restaurant.pretty_print_orders())
+            #if len(restaurant.orders) > 0:
+            orders.text(restaurant.pretty_print_orders())
             streamlit.session_state['restaurant'] = restaurant.to_json()
         except:
             streamlit.info('Something wrong happened.')
