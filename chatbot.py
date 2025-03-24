@@ -24,7 +24,7 @@ def speech_to_text():
         streamlit.markdown("<p class = 'mic' style='text-align: left; color: grey; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Listening...</p>", unsafe_allow_html=True)
         try:
             audio = recognizer.listen(source, timeout = 10)            # Reading Microphone as source
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Processing your speech...</p>", unsafe_allow_html=True)
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: blue; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Processing...</p>", unsafe_allow_html=True)
             #streamlit.markdown("<p id='mic' style='text-align: left; color: grey; margin: 0px; font-size: 12px; font-family: \"Arial\"'>Processing your voice...</p>", unsafe_allow_html=True)
             #st_javascript("document.getElementById('mic').innerHTML = 'Processing your voice...';")
             if lang_input == "English":
@@ -32,15 +32,15 @@ def speech_to_text():
             elif lang_input == "廣東話":
                 converted = recognizer.recognize_google(audio, language="yue-Hant-HK") # Using google speech recognition. Cantonese
             elif lang_input == "普通話":
-                converted = recognizer.recognize_google(audio, language="cmn-Hans-HK") # Using google speech recognition. Chinese
+                converted = recognizer.recognize_google(audio, language="cmn-Hans-HK") # Using google speech recognition. Mandarin
             if converted:
                 streamlit.markdown("<p class = 'mic' style='text-align: left; color: green; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Done!</p>", unsafe_allow_html=True)
             return converted      
         except sr.UnknownValueError:
             #streamlit.write("Unknown Value Error")
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Cannot detect. Please speak again.</p>", unsafe_allow_html=True)
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>I don't understand. Try again!</p>", unsafe_allow_html=True)
         except sr.RequestError:
-            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Request Error from Google Speech Recognition. Please speak again.</p>", unsafe_allow_html=True)
+            streamlit.markdown("<p class = 'mic' style='text-align: left; color: red; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>Request Error from Google Speech Recognition.</p>", unsafe_allow_html=True)
         except sr.WaitTimeoutError:
             #streamlit.write("Wait Timeout Error. No speech detected")
             streamlit.markdown("<p class = 'mic' style='text-align: left; color: orange; margin: 1px; font-size: 11.5px; font-family: \"Arial\"'>No speech detected. Please say something.</p>", unsafe_allow_html=True)
@@ -50,7 +50,7 @@ def speech_to_text():
 def text_to_speech(text):
     # Initialize TTS engine
     tts_engine = pyttsx3.init() 
-    tts_engine.setProperty('rate', 150)      # set speech property
+    tts_engine.setProperty('rate', 175)      # set speech property
     voices = tts_engine.getProperty('voices')
     if lang_input == "English":
         tts_engine.setProperty('voice', voices[1].id)
@@ -184,7 +184,8 @@ with streamlit.sidebar:
         orders.text(restaurant.pretty_print_orders()) #display ordered foods
 
 t = datetime.datetime.now().strftime('%a %d %b %Y, %H:%M')
-prompt = f'The current time is {t}.' + '''You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
+prompt = f'The current time is {t}.' + '''If the user's prompt is in a different language than English eg. Chinese, reply in that user's language.
+You are called 28, an assistant chatbot for 28 Restaurant, an Asian fusion restaurant on the ground floor of block B,
 Man Yee Wan San Tsuen, 28 Yi Chun Street, Sai Kung in Hong Kong.
 28 Restaurant supports dine-in, curbside pickup, and no-contact delivery. You will aid in these functions.
 If the user's inquiry can directly be answered, respond normally. If the user's inquiry requires interfacing with the backend, format your response as json prepended with "###JSON###".
